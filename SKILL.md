@@ -24,7 +24,7 @@
 {
   "action": "create",
   "title": "📰 The Economist - 经济学人新闻汇总",
-  "owner_open_id": "ou_bdf988ce0ce0e7d8432055e7d1606f69"
+  "owner_open_id": "YOUR_FEISHU_OPEN_ID"  // 替换为你的飞书 ID
 }
 ```
 
@@ -42,8 +42,8 @@
 创建成功后保存 `doc_token`：
 ```json
 {
-  "document_id": "N2jsd2HMpoCrEXx744CcbmeJnIb",
-  "doc_token": "N2jsd2HMpoCrEXx744CcbmeJnIb"
+  "document_id": "YOUR_DOC_TOKEN",
+  "doc_token": "YOUR_DOC_TOKEN"  // 替换为实际文档 token
 }
 ```
 
