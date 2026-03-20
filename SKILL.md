@@ -68,13 +68,11 @@
 
 **快速了解全球重要新闻**
 
-#### 主要新闻摘要
-
 1. **[新闻标题 1]**
-   - [详细内容]
+   - [详细内容，简洁概括核心要点]
 
 2. **[新闻标题 2]**
-   - [详细内容]
+   - [详细内容，简洁概括核心要点]
 
 ---
 
@@ -85,35 +83,42 @@
 #### 社论
 
 1. **[文章标题]**
-   - [摘要]
+   - [简短摘要，1-2句话概括核心观点]
 
 #### 美国
 
 1. **[文章标题]**
+   - [简短摘要]
 
 #### 中国
 
 1. **[文章标题]**
+   - [简短摘要]
 
 #### 💼 商业
 
 1. **[文章标题]**
+   - [简短摘要]
 
 #### 💰 金融与经济
 
 1. **[文章标题]**
+   - [简短摘要]
 
 #### 中东与非洲
 
 1. **[文章标题]**
+   - [简短摘要]
 
 #### 欧洲
 
 1. **[文章标题]**
+   - [简短摘要]
 
 #### 英国
 
 1. **[文章标题]**
+   - [简短摘要]
 
 ---
 
@@ -123,9 +128,8 @@
 - **日期**: YYYY-MM-DD
 - **栏目**: [栏目名称]
 - **阅读时间**: X 分钟
-- **URL**: https://www.economist.com/...
 
-**摘要**: [200-300 字摘要]
+**摘要**: [200-300 字详细摘要，完整概括文章核心内容、观点和背景]
 
 ---
 
@@ -133,9 +137,8 @@
 - **日期**: YYYY-MM-DD
 - **栏目**: [栏目名称]
 - **阅读时间**: X 分钟
-- **URL**: https://www.economist.com/...
 
-**摘要**: [200-300 字摘要]
+**摘要**: [200-300 字详细摘要，完整概括文章核心内容、观点和背景]
 
 ---
 
@@ -148,17 +151,17 @@
 
 ### 模块顺序（固定）
 
-1. 🌍 **世界简报** (World in Brief)
-2. 📰 **周刊版** (Weekly Edition)
+1. 🌍 **世界简报** (World in Brief) - 10条主要新闻，简洁概括
+2. 📰 **周刊版** (Weekly Edition) - 各板块简短列表
    - 社论 (Leaders)
    - 美国 (United States)
    - 中国 (China)
-   - 💼 商业 (Business) ← 在中国下面
-   - 💰 金融与经济 (Finance & Economics) ← 在商业下面
+   - 💼 商业 (Business)
+   - 💰 金融与经济 (Finance & Economics)
    - 中东与非洲 (Middle East & Africa)
    - 欧洲 (Europe)
    - 英国 (Britain)
-3. 🇨🇳 **中国 - 详细文章** (China 板块深度文章)
+3. 🇨🇳 **中国 - 详细文章** (China 板块深度文章) - 200-300字详细摘要
 
 ### 标题规范
 
@@ -168,12 +171,19 @@
 
 ### 内容规范
 
-| 字段 | 格式 | 示例 |
-|------|------|------|
-| 日期 | YYYY-MM-DD | 2026-03-17 |
-| 阅读时间 | X 分钟 | 5 分钟 |
-| URL | 完整链接 | https://www.economist.com/china/... |
-| 摘要 | 200-300 字 | 简洁概括核心内容 |
+| 字段 | 格式 | 示例 | 说明 |
+|------|------|------|------|
+| 日期 | YYYY-MM-DD | 2026-03-17 | 文章发布日期 |
+| 阅读时间 | X 分钟 | 5 分钟 | 预计阅读时长 |
+| 摘要（周刊版）| 1-2句话 | 简洁概括 | 简短列表用 |
+| 摘要（详细版）| 200-300 字 | 完整概括 | 中国详细文章用 |
+
+### 输出格式要点
+
+1. **世界简报**：简洁概括，每条新闻一段，突出核心要点
+2. **周刊版各板块**：简短列表形式，每篇文章1-2句话概括
+3. **中国详细文章**：200-300字完整摘要，包含背景、核心观点和影响
+4. **不输出URL**：文档中不包含文章链接（但抓取时用于去重）
 
 ---
 
@@ -184,13 +194,13 @@
 ```json
 {
   "action": "read",
-  "doc_token": "N2jsd2HMpoCrEXx744CcbmeJnIb"
+  "doc_token": "YOUR_DOC_TOKEN"
 }
 ```
 
 **解析内容**：
 - 提取已有文章标题列表
-- 提取已有文章 URL 列表
+- 提取已有文章 URL 列表（用于去重，不输出到文档）
 - 用于后续去重比对
 
 ### 2. 去重逻辑
@@ -198,7 +208,7 @@
 ```python
 # 伪代码示例
 existing_titles = [...]  # 从文档解析的标题
-existing_urls = [...]    # 从文档解析的 URL
+existing_urls = [...]    # 从文档解析的 URL（仅用于去重）
 
 for article in new_articles:
     if article.title in existing_titles:
@@ -215,7 +225,7 @@ for article in new_articles:
 
 **去重策略**：
 - 标题完全匹配 → 跳过
-- URL 完全匹配 → 跳过
+- URL 完全匹配 → 跳过（URL仅用于去重，不输出）
 - 标题相似度>90% → 跳过（避免同一文章不同表述）
 
 ### 3. 写入文档（全量重写）
@@ -223,7 +233,7 @@ for article in new_articles:
 ```json
 {
   "action": "write",
-  "doc_token": "N2jsd2HMpoCrEXx744CcbmeJnIb",
+  "doc_token": "YOUR_DOC_TOKEN",
   "content": "# 📰 The Economist - 经济学人新闻汇总\n\n## 更新日期：2026-03-17\n\n---\n\n## 📅 2026-03-17 更新\n\n[完整 Markdown 内容...]"
 }
 ```
@@ -241,15 +251,15 @@ for article in new_articles:
 
 ## 🌐 数据源
 
-| 模块 | URL |
-|------|-----|
-| 主页 | https://www.economist.com/ |
-| 世界简报 | https://www.economist.com/the-world-in-brief |
-| 周刊版 | https://www.economist.com/weeklyedition/ |
-| 美国 | https://www.economist.com/topics/united-states |
-| 中国 | https://www.economist.com/topics/china |
-| 商业 | https://www.economist.com/topics/business |
-| 金融与经济 | https://www.economist.com/topics/finance-and-economics |
+| 模块 | URL | 说明 |
+|------|-----|------|
+| 主页 | https://www.economist.com/ | 入口页面 |
+| 世界简报 | https://www.economist.com/the-world-in-brief | 每日新闻摘要 |
+| 周刊版 | https://www.economist.com/weeklyedition/ | 完整周刊内容 |
+| 美国 | https://www.economist.com/topics/united-states | 美国新闻 |
+| 中国 | https://www.economist.com/topics/china | 中国新闻（详细摘要） |
+| 商业 | https://www.economist.com/topics/business | 商业新闻 |
+| 金融与经济 | https://www.economist.com/topics/finance-and-economics | 财经新闻 |
 
 ---
 
@@ -271,7 +281,7 @@ for article in new_articles:
 {
   "action": "snapshot",
   "profile": "openclaw",
-  "targetId": "94A6062AD66810BB71826563A27ADBC3",
+  "targetId": "TARGET_ID",
   "compact": true
 }
 ```
@@ -284,7 +294,7 @@ for article in new_articles:
 {
   "action": "close",
   "profile": "openclaw",
-  "targetId": "94A6062AD66810BB71826563A27ADBC3"
+  "targetId": "TARGET_ID"
 }
 ```
 
@@ -315,7 +325,7 @@ for article in new_articles:
 ### 推送要求
 
 1. **每篇文章必须包含**：
-   - 文章标题（可链接）
+   - 文章标题
    - 发布日期
    - **全文翻译**（完整内容，不只是摘要）
 
@@ -337,18 +347,17 @@ for article in new_articles:
 ```markdown
 📰 **The Economist - 世界简报**
 
-*2026 年 3 月 17 日*
+*2026 年 3 月 20 日*
 
 ---
 
-**伊朗战争进展**
+**以色列-伊朗战争最新进展**
 
-特朗普称美国已打击伊朗 7000+ 目标，"彻底摧毁"政权...
-（内容摘要）
+以色列总理内塔尼亚胡声称伊朗不再具备浓缩铀或制造弹道导弹的能力...
 
 ---
 
-✅ 本次新增 5 篇文章，已更新至飞书文档
+✅ 本次新增 21 篇文章，已更新至飞书文档
 📄 文档链接：https://xxx.feishu.cn/docx/ABC123def
 ```
 
@@ -388,13 +397,15 @@ economist-daily:
 - ✅ 最新内容放在文档最上端
 - ✅ 标题只保留中文，去掉英文
 - ✅ 使用 emoji 标识模块（🌍📰💼💰🇨🇳）
+- ✅ **不输出URL**：URL仅用于去重，文档中不显示
+- ✅ **200-300字摘要**：中国详细文章部分必须达到此字数
 
 ### 浏览器管理
 
 - ✅ 任务完成后**只保留经济学人主页面**（https://www.economist.com）
 - ✅ 关闭所有临时打开的板块页面和文章页面
 - ✅ 保持登录状态（不关闭主页面）
-- ✅ 使用 `profile: chrome`（宿主机浏览器）
+- ✅ 使用 `profile: openclaw`
 
 **关闭页面的原因**：
 - 避免浏览器积累过多标签页
@@ -404,13 +415,16 @@ economist-daily:
 ### 去重逻辑
 
 - ✅ 基于标题和 URL 双重去重
+- ✅ URL仅用于去重，不输出到文档
 - ✅ 标题相似度>90% 也跳过
 - ✅ 避免同一文章不同表述导致的重复
 
 ### 翻译与内容
 
 - ✅ 翻译时保持原意，可适当简化
-- ✅ 文章 URL 必须可点击跳转
+- ✅ 世界简报：简洁概括核心要点
+- ✅ 周刊版：简短列表，1-2句话概括
+- ✅ 中国详细文章：200-300字完整摘要
 - ✅ 如果是付费内容，尽量获取免费摘要
 
 ---
