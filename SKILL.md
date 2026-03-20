@@ -249,54 +249,80 @@ for article in new_articles:
 
 ---
 
-## 🌐 数据源
+## 🌐 数据源与分批策略
 
-| 模块 | URL | 说明 |
-|------|-----|------|
-| 主页 | https://www.economist.com/ | 入口页面 |
-| 世界简报 | https://www.economist.com/the-world-in-brief | 每日新闻摘要 |
-| 周刊版 | https://www.economist.com/weeklyedition/ | 完整周刊内容 |
-| 美国 | https://www.economist.com/topics/united-states | 美国新闻 |
-| 中国 | https://www.economist.com/topics/china | 中国新闻（详细摘要） |
-| 商业 | https://www.economist.com/topics/business | 商业新闻 |
-| 金融与经济 | https://www.economist.com/topics/finance-and-economics | 财经新闻 |
+### 分批抓取安排
+
+由于经济学人网站内容较多，采用**分批抓取+间隔等待**策略：
+
+| 批次 | 模块 | URL | 说明 |
+|------|------|-----|------|
+| 1 | 世界简报 | https://www.economist.com/the-world-in-brief | 每日新闻摘要（10条）|
+| 2 | 周刊版 | https://www.economist.com/weeklyedition/ | 完整周刊内容目录 |
+| 3 | 美国 | https://www.economist.com/topics/united-states | 美国新闻 |
+| 4 | 中国 | https://www.economist.com/topics/china | 中国新闻（详细摘要）|
+| 5 | 商业 | https://www.economist.com/topics/business | 商业新闻 |
+| 6 | 金融与经济 | https://www.economist.com/topics/finance-and-economics | 财经新闻 |
+| 7 | 欧洲 | https://www.economist.com/topics/europe | 欧洲新闻 |
+| 8 | 英国 | https://www.economist.com/topics/britain | 英国新闻 |
+
+**总计**: 8 个批次
+
+### 间隔设置
+
+| 间隔类型 | 时长 | 说明 |
+|---------|------|------|
+| **批次间隔** | 10-15秒 | 每批抓取完成后等待 |
+| **页面加载** | 5秒 | 每个页面加载等待时间 |
+| **页面停留** | 3-5秒 | 页面停留时间（模拟真实浏览）|
+| **总时长估算** | 3-5分钟 | 抓取全部内容 |
 
 ---
 
-## 🌐 浏览器操作规范
+## 🌐 浏览器操作规范（⚠️ 必须严格遵循）
 
-### 打开页面
+### 操作流程
 
-```json
-{
-  "action": "open",
-  "profile": "openclaw",
-  "targetUrl": "https://www.economist.com/topics/china"
-}
+```bash
+# 1. 打开页面
+browser action=open profile=openclaw url=https://www.economist.com/topics/china
+# 返回 targetId，必须保存用于后续关闭
+
+# 2. 等待加载（5秒）
+exec sleep 5
+
+# 3. 获取快照
+browser action=snapshot profile=openclaw targetId={targetId}
+
+# 4. 停留3-5秒（模拟阅读）
+exec sleep 3
+
+# 5. 【强制】关闭页面（释放资源）
+# ⚠️ 必须执行，否则会导致浏览器标签页堆积
+browser action=close profile=openclaw targetId={targetId}
 ```
 
-### 获取内容
+### 🚨 资源释放规范
 
-```json
-{
-  "action": "snapshot",
-  "profile": "openclaw",
-  "targetId": "TARGET_ID",
-  "compact": true
-}
+**必须关闭页面的情况**：
+- ✅ 每个板块抓取完成后立即关闭
+- ✅ 批次内所有页面抓取完成后检查并关闭残留
+- ✅ 任务中断/异常时清理所有已打开页面
+- ✅ 子代理执行时必须传递 targetId 并确保关闭
+
+**检查命令**：
+```bash
+# 检查当前所有标签页
+browser action=tabs profile=openclaw
+
+# 批量关闭所有经济学人相关页面（清理用）
+# 遍历 tabs 结果，关闭所有 url 包含 economist.com 的页面
 ```
 
-### 关闭页面（重要！）
-
-**每次获取完文章内容后，必须关闭该标签页**，避免浏览器资源占用：
-
-```json
-{
-  "action": "close",
-  "profile": "openclaw",
-  "targetId": "TARGET_ID"
-}
-```
+**子代理执行要求**：
+- 子代理必须在 `finally` 块或确保执行的代码段中关闭页面
+- 父代理应在子代理完成后检查并清理残留标签页
+- 记录每个打开的 targetId，确保可追溯关闭
 
 **保留主页不关闭**：经济学人主页作为入口始终保留。
 
@@ -402,15 +428,111 @@ economist-daily:
 
 ### 浏览器管理
 
-- ✅ 任务完成后**只保留经济学人主页面**（https://www.economist.com）
-- ✅ 关闭所有临时打开的板块页面和文章页面
-- ✅ 保持登录状态（不关闭主页面）
+- ✅ 任务完成后**关闭所有临时打开的板块页面**
 - ✅ 使用 `profile: openclaw`
+- ✅ **强制关闭**：每个页面抓取完成后必须立即关闭
 
 **关闭页面的原因**：
 - 避免浏览器积累过多标签页
-- 保持登录状态（主页面的 cookies 有效）
-- 下次执行时从主页面重新导航，确保内容最新
+- 防止内存泄漏和性能下降
+- 保持浏览器稳定性
+
+**完整执行流程代码示例**：
+```python
+def execute_skill():
+    opened_tabs = []  # 记录所有打开的页面 targetId
+    
+    # 1. 读取配置
+    config = read_economist_config()
+    job = read_job_list()
+    
+    # 2. 检查或创建文档
+    if not config.doc_token:
+        doc = create_feishu_doc(
+            title="📰 The Economist - 经济学人新闻汇总",
+            owner_open_id=user_open_id
+        )
+        config.doc_token = doc.token
+        config.doc_url = doc.url
+        config.first_execution = now()
+    
+    config.execution_count += 1
+    job.status = "running"
+    job.last_update = now()
+    save_job_list(job)
+    
+    try:
+        # 3. 循环抓取批次
+        for batch_num in range(1, 9):
+            if batch_num in job.completed_batches:
+                continue  # 跳过已完成批次
+            
+            batch = job.batches[str(batch_num)]
+            job.current_batch = batch_num
+            save_job_list(job)
+            
+            # 打开页面
+            target_id = browser_open(batch.url)
+            opened_tabs.append(target_id)
+            
+            sleep(5)
+            content = browser_snapshot(target_id)
+            
+            # 解析文章
+            articles = parse_articles(content)
+            batch.articles = len(articles)
+            batch.status = "completed"
+            job.completed_batches.append(batch_num)
+            job.total_articles += len(articles)
+            
+            # 立即关闭页面
+            browser_close(target_id)
+            opened_tabs.remove(target_id)
+            
+            # 更新文档
+            append_to_document(config.doc_token, articles)
+            
+            # 发送通知
+            send_notification(batch_num, len(articles), config.doc_url)
+            
+            # 批次间隔
+            if batch_num < 8:
+                sleep(10)
+        
+        # 4. 任务完成
+        job.status = "completed"
+        
+        # 5. 记录执行历史
+        config.history.append({
+            "execution": config.execution_count,
+            "time": now(),
+            "batches": job.completed_batches.copy(),
+            "articles": job.total_articles
+        })
+        
+    finally:
+        # 6. 清理资源
+        cleanup_all_tabs(opened_tabs)
+        save_config(config)
+        save_job_list(job)
+
+def cleanup_all_tabs(opened_tabs):
+    """清理所有已打开的标签页"""
+    for target_id in opened_tabs:
+        try:
+            browser_close(target_id)
+        except:
+            pass
+    
+    # 额外检查：关闭所有经济学人相关页面
+    all_tabs = browser_list_tabs()
+    for tab in all_tabs:
+        if "economist.com" in tab.url and tab.type == "page":
+            try:
+                browser_close(tab.targetId)
+            except:
+                pass
+```
 
 ### 去重逻辑
 
@@ -452,11 +574,89 @@ economist-daily:
 
 ---
 
-## 📁 文件结构
+## 📁 文件结构与执行记录
 
 ```
 skills/economist-news/
-└── SKILL.md          # 本文件
+└── SKILL.md                    # 本文件
+
+economist_job_list.json         # 任务状态文件（自动创建）
+economist_config.json           # 执行记录文件（自动创建）
+```
+
+### 执行记录机制（防止重复创建文档）
+
+**位置**: `/Users/caoxy/.openclaw/agents/news-officer/economist_config.json`
+
+**作用**: 记录首次创建的飞书文档信息，后续执行都更新同一文档
+
+**内容示例**:
+```json
+{
+  "first_execution": "2026-03-20T07:30:00+08:00",
+  "execution_count": 5,
+  "doc_token": "YOUR_DOC_TOKEN",
+  "doc_url": "https://feishu.cn/docx/ABC123",
+  "doc_title": "📰 The Economist - 经济学人新闻汇总",
+  "history": [
+    {
+      "execution": 1,
+      "time": "2026-03-20T07:30:00+08:00",
+      "batches": [1, 2, 3, 4, 5, 6, 7, 8],
+      "articles": 25
+    }
+  ],
+  "settings": {
+    "cron_schedule": "30 7 * * *",
+    "batch_interval": 10,
+    "page_load_wait": 5,
+    "page_stay_time": 3
+  }
+}
+```
+
+### 任务状态文件
+
+**位置**: `/Users/caoxy/.openclaw/agents/news-officer/economist_job_list.json`
+
+**作用**: 记录批次进度，支持断点续传
+
+**内容示例**:
+```json
+{
+  "task": "economist-news",
+  "total_batches": 8,
+  "completed_batches": [1, 2],
+  "current_batch": 3,
+  "status": "running",
+  "batches": {
+    "1": {"status": "completed", "module": "世界简报", "articles": 10},
+    "2": {"status": "completed", "module": "周刊版", "articles": 8},
+    "3": {"status": "pending", "module": "美国", "articles": 0}
+  }
+}
+```
+
+### 💓 Heartbeat 自动续传机制
+
+**执行流程**:
+```
+1. 开始执行 Skill
+   ↓
+2. 创建 economist_job_list.json 记录进度
+   ↓
+3. 设置 Heartbeat 检查（每5分钟）
+   ↓
+4. 执行批次抓取
+   ↓
+5. 如果中断：
+   - Heartbeat 检测到未完成任务
+   - 自动继续执行
+   ↓
+6. 全部完成后：
+   - 更新 economist_job_list.json 为完成状态
+   - 更新 economist_config.json 执行历史
+   - 终止 Heartbeat 检查
 ```
 
 ### 相关配置
